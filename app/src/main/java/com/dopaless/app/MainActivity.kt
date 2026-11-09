@@ -8,6 +8,8 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -61,8 +63,7 @@ private fun readUsage(c: Context): UsageSnapshot {
         if (s.packageName == c.packageName || s.totalTimeInForeground <= 0L) return@mapNotNull null
         try {
             if (pm.getLaunchIntentForPackage(s.packageName) == null) return@mapNotNull null
-            val info = if (Build.VERSION.SDK_INT >= 33) pm.getApplicationInfo(s.packageName, PackageManager.ApplicationInfoFlags.of(0))
-                else @Suppress("DEPRECATION") pm.getApplicationInfo(s.packageName, 0)
+            @Suppress("DEPRECATION") val info = pm.getApplicationInfo(s.packageName, 0)
             AppUsage(s.packageName, pm.getApplicationLabel(info).toString(), s.totalTimeInForeground)
         } catch (_: Exception) { null }
     }.sortedByDescending { it.millis }
@@ -100,7 +101,7 @@ private fun checkLimitAlerts(c: Context, snapshot: UsageSnapshot) {
         val permitted = Build.VERSION.SDK_INT < 33 || c.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         if (permitted) {
             val pi = PendingIntent.getActivity(c, 0, Intent(c, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            val n = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(c, CHANNEL) else @Suppress("DEPRECATION") Notification.Builder(c)
+            val n = Notification.Builder(c, CHANNEL)
             n.setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle(app.label + " limit reached")
                 .setContentText("Used " + fmt(app.millis) + " today").setContentIntent(pi).setAutoCancel(true)
             nm.notify(app.packageName.hashCode(), n.build())
@@ -133,7 +134,8 @@ private fun DopaLessApp() {
     LaunchedEffect(Unit) {
         while (true) {
             delay(60_000L)
-            if (hasUsageAccess(c)) {
+            allowed = hasUsageAccess(c)
+            if (allowed) {
                 usage = readUsage(c)
                 checkLimitAlerts(c, usage)
                 DopaLessWidget.update(c)
@@ -203,6 +205,8 @@ private fun HomeScreen(goal: Int, setGoal: (Int) -> Unit, allowed: Boolean, tota
 
 @Composable
 private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limits: Map<String, Int>, enable: () -> Unit, refresh: () -> Unit, save: (String, Int?) -> Unit) {
+    val context = LocalContext.current
+    val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     var selected by remember { mutableStateOf<AppUsage?>(null) }
     var minutes by remember { mutableFloatStateOf(60f) }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -228,6 +232,9 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
                 IconButton(onClick = refresh) { Icon(Icons.Rounded.Refresh, "Refresh") }
             }
             Text("Set a daily threshold for each app. DopaLess alerts you when it is reached.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+            if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                TextButton(onClick = { notificationLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS) }) { Text("Enable limit notifications") }
+            }
         }
         if (allowed && usage.apps.isEmpty()) item { Text("No app activity found yet. Refresh after using some apps.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(usage.apps, key = { it.packageName }) { app ->
