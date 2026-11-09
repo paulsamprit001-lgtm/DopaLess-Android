@@ -74,6 +74,7 @@ class TimerService : Service() {
                 endAt = System.currentTimeMillis() + duration
                 paused = false
                 remainingWhenPaused = 0L
+                getSharedPreferences(TIMER_PREFS, MODE_PRIVATE).edit().putLong("timer_duration", duration).apply()
                 saveState(true, duration)
                 scheduleEndAlarm(endAt)
                 startForeground(TIMER_NOTIFICATION_ID, buildNotification(duration))
@@ -195,6 +196,8 @@ class TimerService : Service() {
         saveState(false, 0L)
         cancelEndAlarm()
         val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
+        val reclaimed = p.getLong("timer_duration", 0L) / 60_000L
+        if (reclaimed > 0L) p.edit().putLong("garden_reclaimed_minutes", p.getLong("garden_reclaimed_minutes", 0L) + reclaimed).apply()
         if (kind == "focus") p.edit().putInt("focus_done", p.getInt("focus_done", 0) + 1).apply()
         if (kind == "challenge") p.edit().putInt("challenge_done", p.getInt("challenge_done", 0) + 1)
             .putInt("active_challenge_index", -1).remove("active_challenge_started").apply()
