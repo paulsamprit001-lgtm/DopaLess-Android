@@ -209,7 +209,7 @@ private fun DopaLessApp() {
                     2 -> FocusScreen(p)
                     3 -> ChallengesScreen(p)
                     4 -> GrowthScreen(p, hourly, usage.total)
-                    else -> SettingsScreen(dark) { dark = it; p.edit().putBoolean("dark", it).apply() }
+                    else -> SettingsScreen(dark) { dark = it; p.edit().putBoolean("dark", it).apply(); DopaLessWidget.update(c) }
                 }
             }
         }
