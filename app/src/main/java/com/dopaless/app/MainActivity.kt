@@ -208,6 +208,7 @@ private fun DopaLessApp() {
                     1 -> UsageScreen(allowed, usage, goal, limits, { c.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }, { tick++ }, { pkg, mins -> putLimit(c, pkg, mins); limits = getLimits(c); checkLimitAlerts(c, usage) })
                     2 -> FocusScreen(p)
                     3 -> ChallengesScreen(p)
+                    4 -> GrowthScreen(p, hourly, usage.total)
                     else -> SettingsScreen(dark) { dark = it; p.edit().putBoolean("dark", it).apply() }
                 }
             }
