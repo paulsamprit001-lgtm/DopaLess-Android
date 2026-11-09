@@ -466,6 +466,7 @@ private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
         OutlinedButton(onClick = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(android.net.Uri.parse("package:" + context.packageName)))
         }) { Text("Battery and app settings") }
+        Text("On Xiaomi / MIUI, set DopaLess battery use to No restrictions and enable Autostart so timers are less likely to be stopped.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
         Text("Version 0.5.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
