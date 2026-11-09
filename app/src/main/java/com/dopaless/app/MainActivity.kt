@@ -195,10 +195,10 @@ private fun DopaLessApp() {
             containerColor = MaterialTheme.colorScheme.background,
             topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface, titleContentColor = MaterialTheme.colorScheme.onSurface, actionIconContentColor = MaterialTheme.colorScheme.onSurface), title = { Text("DopaLess", fontWeight = FontWeight.Bold) }, actions = { IconButton(onClick = { dark = !dark; p.edit().putBoolean("dark", dark).apply(); DopaLessWidget.update(c) }) { Icon(Icons.Rounded.DarkMode, "Theme") } }) },
             bottomBar = {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, windowInsets = WindowInsets.navigationBars) {
                     val labels = listOf("Home", "Usage", "Focus", "Challenges", "Growth", "Settings")
                     val icons = listOf(Icons.Rounded.Home, Icons.Rounded.BarChart, Icons.Rounded.CenterFocusStrong, Icons.Rounded.Flag, Icons.Rounded.Spa, Icons.Rounded.Settings)
-                    labels.forEachIndexed { i, label -> NavigationBarItem(selected = tab == i, onClick = { tab = i; tick++ }, colors = NavigationBarItemDefaults.colors(selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary, unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant, unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant, indicatorColor = MaterialTheme.colorScheme.secondaryContainer), icon = { Icon(icons[i], label) }, label = { Text(label, fontSize = 10.sp) }) }
+                    labels.forEachIndexed { i, label -> NavigationBarItem(selected = tab == i, onClick = { tab = i; tick++ }, colors = NavigationBarItemDefaults.colors(selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary, unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant, unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant, indicatorColor = MaterialTheme.colorScheme.secondaryContainer), icon = { Icon(icons[i], label) }, label = { Text(label, fontSize = 8.sp, maxLines = 1, softWrap = false, letterSpacing = (-0.2).sp) }) }
                 }
             }
         ) { pad ->
@@ -477,7 +477,6 @@ private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
         OutlinedButton(onClick = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(android.net.Uri.parse("package:" + context.packageName)))
         }) { Text("Battery and app settings") }
-        Text("On Xiaomi / MIUI, set DopaLess battery use to No restrictions and enable Autostart so timers are less likely to be stopped.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-        Text("Version 0.6.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Text("Version 0.7.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
