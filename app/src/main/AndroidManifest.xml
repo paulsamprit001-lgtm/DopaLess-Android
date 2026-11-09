@@ -18,7 +18,12 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:allowBackup="true"
         android:supportsRtl="true">
-        <activity android:name=".AppLimitBlockActivity" android:exported="false" android:excludeFromRecents="true" />\n        <service android:name=".AppLimitAccessibilityService" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="false">\n            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>\n            <meta-data android:name="android.accessibilityservice" android:resource="@xml/app_limit_accessibility" />\n        </service>\n        <activity android:name=".MainActivity" android:exported="true">
+        <activity android:name=".AppLimitBlockActivity" android:exported="false" android:excludeFromRecents="true" />
+        <service android:name=".AppLimitAccessibilityService" android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" android:exported="true">
+            <intent-filter><action android:name="android.accessibilityservice.AccessibilityService" /></intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/app_limit_accessibility" />
+        </service>
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
