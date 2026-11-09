@@ -375,6 +375,14 @@ private fun FocusScreen(data: android.content.SharedPreferences) {
         Spacer(Modifier.height(16.dp))
         Text(done.toString() + " completed sessions", color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (active) Text("Timer continues when the app is closed", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+        if (Build.VERSION.SDK_INT >= 31) {
+            val alarmManager = context.getSystemService(AlarmManager::class.java)
+            if (!alarmManager.canScheduleExactAlarms()) {
+                TextButton(onClick = {
+                    context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).setData(android.net.Uri.parse("package:" + context.packageName)))
+                }) { Text("Allow precise timer alerts") }
+            }
+        }
     }
 }
 
@@ -447,12 +455,16 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
 
 @Composable
 private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
+    val context = LocalContext.current
     Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
         Text("Settings", fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Dark theme", Modifier.weight(1f))
             Switch(checked = dark, onCheckedChange = setDark)
         }
-        Text("Version 0.4.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        OutlinedButton(onClick = {
+            context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(android.net.Uri.parse("package:" + context.packageName)))
+        }) { Text("Battery and app settings") }
+        Text("Version 0.5.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
