@@ -29,6 +29,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DopaLessApp() {
     var tab by remember { mutableIntStateOf(0) }
