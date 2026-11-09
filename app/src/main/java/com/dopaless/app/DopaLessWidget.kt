@@ -46,7 +46,7 @@ class DopaLessWidget : AppWidgetProvider() {
                     views.setViewVisibility(R.id.widget_timer_title, android.view.View.VISIBLE)
                     views.setViewVisibility(R.id.widget_timer, android.view.View.VISIBLE)
                     views.setTextViewText(R.id.widget_timer_title, label + if (paused) " · Paused" else "")
-                    if (!paused) views.setChronometer(R.id.widget_timer, SystemClock.elapsedRealtime() + remaining, null, true)
+                    if (!paused) { views.setChronometer(R.id.widget_timer, SystemClock.elapsedRealtime() + remaining, null, true); views.setChronometerCountDown(R.id.widget_timer, true) }
                     else views.setTextViewText(R.id.widget_timer, formatTimer(remaining))
                 } else {
                     views.setViewVisibility(R.id.widget_timer_title, android.view.View.GONE)
