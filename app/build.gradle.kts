@@ -6,7 +6,7 @@ plugins {
 android {
     namespace = "com.dopaless.app"
     compileSdk = 35
-    defaultConfig { applicationId = "com.dopaless.app"; minSdk = 26; targetSdk = 35; versionCode = 2; versionName = "0.3.0" }
+    defaultConfig { applicationId = "com.dopaless.app"; minSdk = 26; targetSdk = 35; versionCode = 3; versionName = "0.4.0" }
     buildTypes { release { isMinifyEnabled = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
@@ -22,4 +22,5 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("androidx.core:core-ktx:1.15.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+    testImplementation("junit:junit:4.13.2")
 }
