@@ -345,13 +345,15 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
 private fun FocusScreen(data: android.content.SharedPreferences) {
     val context = LocalContext.current
     var preset by remember { mutableIntStateOf(25) }
-    var active by remember { mutableStateOf(data.getBoolean("timer_active", false) && data.getString("timer_kind", "focus") == "focus") }
+    var active by remember { mutableStateOf(data.getBoolean("timer_active", false)) }
+    var timerTitle by remember { mutableStateOf(data.getString("timer_title", "Timer") ?: "Timer") }
     var paused by remember { mutableStateOf(data.getBoolean("timer_paused", false)) }
     var remaining by remember { mutableLongStateOf(0L) }
     var done by remember { mutableIntStateOf(data.getInt("focus_done", 0)) }
     LaunchedEffect(Unit) {
         while (true) {
-            active = data.getBoolean("timer_active", false) && data.getString("timer_kind", "focus") == "focus"
+            active = data.getBoolean("timer_active", false)
+            timerTitle = data.getString("timer_title", "Timer") ?: "Timer"
             paused = data.getBoolean("timer_paused", false)
             val end = data.getLong("timer_end", 0L)
             remaining = if (paused) data.getLong("timer_remaining", 0L) else (end - System.currentTimeMillis()).coerceAtLeast(0L)
@@ -361,6 +363,7 @@ private fun FocusScreen(data: android.content.SharedPreferences) {
     }
     Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("Focus", fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
+        if (active) Text(timerTitle, color = MaterialTheme.colorScheme.primary)
         Spacer(Modifier.height(28.dp))
         Text(if (active) "%02d:%02d".format(remaining / 60000L, (remaining / 1000L) % 60L) else "%02d:00".format(preset), fontSize = 56.sp, fontWeight = FontWeight.Light)
         Spacer(Modifier.height(20.dp))
@@ -402,6 +405,7 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
         Challenge("Weekend reset", 120, "Make time for an offline hobby")
     ) }
     var active by remember { mutableIntStateOf(data.getInt("active_challenge_index", -1)) }
+    var anyTimerActive by remember { mutableStateOf(data.getBoolean("timer_active", false)) }
     var running by remember { mutableStateOf(data.getBoolean("timer_active", false) && data.getString("timer_kind", "") == "challenge") }
     var paused by remember { mutableStateOf(data.getBoolean("timer_paused", false)) }
     var remaining by remember { mutableLongStateOf(0L) }
@@ -409,7 +413,8 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
     LaunchedEffect(Unit) {
         while (true) {
             active = data.getInt("active_challenge_index", -1)
-            running = data.getBoolean("timer_active", false) && data.getString("timer_kind", "") == "challenge"
+            anyTimerActive = data.getBoolean("timer_active", false)
+            running = anyTimerActive && data.getString("timer_kind", "") == "challenge"
             paused = data.getBoolean("timer_paused", false)
             val end = data.getLong("timer_end", 0L)
             remaining = if (paused) data.getLong("timer_remaining", 0L) else (end - System.currentTimeMillis()).coerceAtLeast(0L)
@@ -420,6 +425,7 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("Challenges", fontSize = 25.sp, fontWeight = FontWeight.SemiBold) }
         item { Text(completed.toString() + " completed", color = MaterialTheme.colorScheme.primary) }
+        if (anyTimerActive && !running) item { Text("Finish the active focus timer before starting a challenge.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) }
         if (running && active in challenges.indices) item {
             val current = challenges[active]
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
@@ -443,7 +449,7 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
                         Text(challenge.mins.toString() + " min · " + challenge.detail, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
                     if (running && active == i) Text("Active", color = MaterialTheme.colorScheme.primary)
-                    else if (!running && active < 0) TextButton(onClick = {
+                    else if (!anyTimerActive && active < 0) TextButton(onClick = {
                         data.edit().putInt("active_challenge_index", i).putLong("active_challenge_started", System.currentTimeMillis()).apply()
                         TimerService.start(context, challenge.title, "challenge", challenge.mins * 60_000L)
                     }) { Text("Start") }
