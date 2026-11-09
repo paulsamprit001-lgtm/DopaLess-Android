@@ -45,8 +45,6 @@ class TimerService : Service() {
             if (remaining <= 0L) {
                 finishTimer()
             } else {
-                updateNotification()
-                DopaLessWidget.update(this@TimerService)
                 handler.postDelayed(this, 1000L)
             }
         }
@@ -101,6 +99,7 @@ class TimerService : Service() {
                 val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
                 title = p.getString("timer_title", "Focus timer") ?: "Focus timer"
                 kind = p.getString("timer_kind", "focus") ?: "focus"
+                startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
                 finishTimer()
             }
             else -> {
@@ -250,6 +249,8 @@ class TimerService : Service() {
         handler.removeCallbacks(ticker)
         saveState(false, 0L)
         cancelEndAlarm()
+        if (kind == "challenge") getSharedPreferences(TIMER_PREFS, MODE_PRIVATE).edit()
+            .putInt("active_challenge_index", -1).remove("active_challenge_started").apply()
         DopaLessWidget.update(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
