@@ -30,9 +30,10 @@ fun GrowthScreen(data: SharedPreferences, hourly: List<Long>, dailyUsage: Long) 
     var gardenOpen by remember { mutableStateOf(false) }
     var refresh by remember { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { while (true) { delay(2_000L); refresh++ } }
-    val focus = data.getInt("focus_done", 0)
-    val done = data.getInt("challenge_done", 0)
-    val reclaimed = data.getLong("garden_reclaimed_minutes", 0L)
+    val refreshTick = refresh
+    val focus = remember(refreshTick) { data.getInt("focus_done", 0) }
+    val done = remember(refreshTick) { data.getInt("challenge_done", 0) }
+    val reclaimed = remember(refreshTick) { data.getLong("garden_reclaimed_minutes", 0L) }
     val weekMinutes = dailyUsage / 60000L * 7L
     val yearHours = dailyUsage / 3600000L * 365L
     if (gardenOpen) {
