@@ -2,6 +2,7 @@ package com.dopaless.app
 
 import android.app.*
 import android.app.usage.UsageStatsManager
+import android.app.usage.UsageEvents
 import android.content.*
 import android.content.pm.PackageManager
 import android.os.Build
