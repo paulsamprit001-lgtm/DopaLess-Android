@@ -12,6 +12,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -39,6 +41,9 @@ data class UsageSnapshot(val total: Long, val apps: List<AppUsage>)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 901)
+        }
         setContent { DopaLessApp() }
     }
 }
@@ -68,6 +73,42 @@ private fun readUsage(c: Context): UsageSnapshot {
         } catch (_: Exception) { null }
     }.sortedByDescending { it.millis }
     return UsageSnapshot(apps.sumOf { it.millis }, apps)
+}
+
+
+private fun readHourlyUsage(c: Context): List<Long> {
+    if (!hasUsageAccess(c)) return List(24) { 0L }
+    val startOfDay = todayStart()
+    val now = System.currentTimeMillis()
+    val manager = c.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    val events = manager.queryEvents(startOfDay, now)
+    val event = UsageEvents.Event()
+    val active = mutableMapOf<String, Long>()
+    val buckets = MutableList(24) { 0L }
+    fun addInterval(from: Long, to: Long) {
+        var cursor = from.coerceAtLeast(startOfDay)
+        val end = to.coerceAtMost(now)
+        while (cursor < end) {
+            val hour = ((cursor - startOfDay) / 3_600_000L).toInt().coerceIn(0, 23)
+            val pieceEnd = minOf(end, startOfDay + (hour + 1L) * 3_600_000L)
+            buckets[hour] += pieceEnd - cursor
+            cursor = pieceEnd
+        }
+    }
+    while (events.hasNextEvent()) {
+        events.getNextEvent(event)
+        val pkg = event.packageName ?: continue
+        if (pkg == c.packageName) continue
+        when (event.eventType) {
+            UsageEvents.Event.MOVE_TO_FOREGROUND, UsageEvents.Event.ACTIVITY_RESUMED -> active[pkg] = event.timeStamp
+            UsageEvents.Event.MOVE_TO_BACKGROUND, UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED -> {
+                val began = active.remove(pkg)
+                if (began != null) addInterval(began, event.timeStamp)
+            }
+        }
+    }
+    active.values.forEach { addInterval(it, now) }
+    return buckets
 }
 
 internal fun fmt(ms: Long): String {
@@ -120,6 +161,7 @@ private fun DopaLessApp() {
     var goal by remember { mutableIntStateOf(p.getInt("goal", 240)) }
     var allowed by remember { mutableStateOf(hasUsageAccess(c)) }
     var usage by remember { mutableStateOf(UsageSnapshot(0L, emptyList())) }
+    var hourly by remember { mutableStateOf(List(24) { 0L }) }
     var limits by remember { mutableStateOf(getLimits(c)) }
     var tick by remember { mutableIntStateOf(0) }
 
@@ -127,6 +169,7 @@ private fun DopaLessApp() {
         allowed = hasUsageAccess(c)
         if (allowed) {
             usage = readUsage(c)
+            hourly = readHourlyUsage(c)
             checkLimitAlerts(c, usage)
             DopaLessWidget.update(c)
         }
@@ -137,6 +180,7 @@ private fun DopaLessApp() {
             allowed = hasUsageAccess(c)
             if (allowed) {
                 usage = readUsage(c)
+                hourly = readHourlyUsage(c)
                 checkLimitAlerts(c, usage)
                 DopaLessWidget.update(c)
             }
@@ -159,7 +203,7 @@ private fun DopaLessApp() {
         ) { pad ->
             Box(Modifier.fillMaxSize().padding(pad)) {
                 when (tab) {
-                    0 -> HomeScreen(goal, { goal = it; p.edit().putInt("goal", it).apply(); DopaLessWidget.update(c) }, allowed, usage.total, { tab = 1 }, { c.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) })
+                    0 -> HomeScreen(goal, { goal = it; p.edit().putInt("goal", it).apply(); DopaLessWidget.update(c) }, allowed, usage.total, hourly, { tab = 1 }, { c.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) })
                     1 -> UsageScreen(allowed, usage, goal, limits, { c.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }, { tick++ }, { pkg, mins -> putLimit(c, pkg, mins); limits = getLimits(c); checkLimitAlerts(c, usage) })
                     2 -> FocusScreen(p)
                     3 -> ChallengesScreen(p)
@@ -171,7 +215,7 @@ private fun DopaLessApp() {
 }
 
 @Composable
-private fun HomeScreen(goal: Int, setGoal: (Int) -> Unit, allowed: Boolean, total: Long, openUsage: () -> Unit, enable: () -> Unit) {
+private fun HomeScreen(goal: Int, setGoal: (Int) -> Unit, allowed: Boolean, total: Long, hourly: List<Long>, openUsage: () -> Unit, enable: () -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { Text("Today", fontSize = 26.sp, fontWeight = FontWeight.SemiBold) }
         item {
@@ -190,6 +234,28 @@ private fun HomeScreen(goal: Int, setGoal: (Int) -> Unit, allowed: Boolean, tota
                     Text(if (!allowed) "Usage access is required" else if (total < goal * 60000L) fmt(goal * 60000L - total) + " remaining" else "Daily goal reached", fontWeight = FontWeight.Medium)
                     if (!allowed) Button(onClick = enable) { Text("Enable usage access") } else TextButton(onClick = openUsage) { Text("View app usage") }
                     Text("Daily goal · " + goal + " minutes", color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Hourly usage", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text("When you used your phone more or less today", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    val peak = (hourly.maxOrNull() ?: 0L).coerceAtLeast(1L)
+                    Row(Modifier.fillMaxWidth().height(88.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.Bottom) {
+                        hourly.forEach { value ->
+                            val barHeight = (value.toFloat() / peak * 72f).coerceAtLeast(if (value > 0L) 5f else 2f)
+                            Box(Modifier.weight(1f).height(barHeight.dp).background(MaterialTheme.colorScheme.primary.copy(alpha = if (value > 0L) 0.85f else 0.12f), RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp)))
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("12 AM", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("6 AM", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("12 PM", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("6 PM", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("12 AM", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
@@ -276,35 +342,39 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
 
 @Composable
 private fun FocusScreen(data: android.content.SharedPreferences) {
+    val context = LocalContext.current
     var preset by remember { mutableIntStateOf(25) }
-    var seconds by remember { mutableIntStateOf(0) }
-    var running by remember { mutableStateOf(false) }
-    var endAt by remember { mutableLongStateOf(0L) }
+    var active by remember { mutableStateOf(data.getBoolean("timer_active", false) && data.getString("timer_kind", "focus") == "focus") }
+    var paused by remember { mutableStateOf(data.getBoolean("timer_paused", false)) }
+    var remaining by remember { mutableLongStateOf(0L) }
     var done by remember { mutableIntStateOf(data.getInt("focus_done", 0)) }
-    LaunchedEffect(running, endAt) {
-        while (running) {
-            seconds = ((endAt - System.currentTimeMillis() + 999L) / 1000L).toInt().coerceAtLeast(0)
-            if (seconds == 0) {
-                running = false; done++; data.edit().putInt("focus_done", done).apply()
-            } else delay(250L)
+    LaunchedEffect(Unit) {
+        while (true) {
+            active = data.getBoolean("timer_active", false) && data.getString("timer_kind", "focus") == "focus"
+            paused = data.getBoolean("timer_paused", false)
+            val end = data.getLong("timer_end", 0L)
+            remaining = if (paused) data.getLong("timer_remaining", 0L) else (end - System.currentTimeMillis()).coerceAtLeast(0L)
+            done = data.getInt("focus_done", 0)
+            delay(500L)
         }
     }
     Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("Focus", fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(28.dp))
-        Text("%02d:%02d".format(seconds / 60, seconds % 60), fontSize = 56.sp, fontWeight = FontWeight.Light)
+        Text(if (active) "%02d:%02d".format(remaining / 60000L, (remaining / 1000L) % 60L) else "%02d:00".format(preset), fontSize = 56.sp, fontWeight = FontWeight.Light)
         Spacer(Modifier.height(20.dp))
-        if (seconds == 0 && !running) {
+        if (!active) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf(15, 25, 45, 60).forEach { FilterChip(selected = preset == it, onClick = { preset = it }, label = { Text(it.toString() + "m") }) } }
-            Button(onClick = { seconds = preset * 60; endAt = System.currentTimeMillis() + seconds * 1000L; running = true }) { Text("Start") }
+            Button(onClick = { TimerService.start(context, "Focus session", "focus", preset * 60_000L) }) { Text("Start") }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { if (running) { seconds = ((endAt - System.currentTimeMillis() + 999L) / 1000L).toInt().coerceAtLeast(0); running = false } else { endAt = System.currentTimeMillis() + seconds * 1000L; running = true } }) { Text(if (running) "Pause" else "Resume") }
-                OutlinedButton(onClick = { running = false; seconds = 0 }) { Text("End") }
+                Button(onClick = { TimerService.command(context, if (paused) TimerService.ACTION_RESUME else TimerService.ACTION_PAUSE) }) { Text(if (paused) "Resume" else "Pause") }
+                OutlinedButton(onClick = { TimerService.command(context, TimerService.ACTION_STOP) }) { Text("End") }
             }
         }
         Spacer(Modifier.height(16.dp))
         Text(done.toString() + " completed sessions", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (active) Text("Timer continues when the app is closed", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
     }
 }
 
@@ -312,6 +382,7 @@ private data class Challenge(val title: String, val mins: Int, val detail: Strin
 
 @Composable
 private fun ChallengesScreen(data: android.content.SharedPreferences) {
+    val context = LocalContext.current
     val challenges = remember { listOf(
         Challenge("30-minute break", 30, "Take a break from optional screen use"),
         Challenge("One-hour reset", 60, "Spend an hour on an offline activity"),
@@ -322,33 +393,34 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
         Challenge("Weekend reset", 120, "Make time for an offline hobby")
     ) }
     var active by remember { mutableIntStateOf(data.getInt("active_challenge_index", -1)) }
-    var start by remember { mutableLongStateOf(data.getLong("active_challenge_started", 0L)) }
+    var running by remember { mutableStateOf(data.getBoolean("timer_active", false) && data.getString("timer_kind", "") == "challenge") }
+    var paused by remember { mutableStateOf(data.getBoolean("timer_paused", false)) }
+    var remaining by remember { mutableLongStateOf(0L) }
     var completed by remember { mutableIntStateOf(data.getInt("challenge_done", 0)) }
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(active, start) {
-        while (active >= 0) {
-            now = System.currentTimeMillis()
-            if (now - start >= challenges[active].mins * 60000L) {
-                completed++
-                data.edit().putInt("challenge_done", completed).putInt("active_challenge_index", -1).remove("active_challenge_started").apply()
-                active = -1
-            } else delay(1000L)
+    LaunchedEffect(Unit) {
+        while (true) {
+            active = data.getInt("active_challenge_index", -1)
+            running = data.getBoolean("timer_active", false) && data.getString("timer_kind", "") == "challenge"
+            paused = data.getBoolean("timer_paused", false)
+            val end = data.getLong("timer_end", 0L)
+            remaining = if (paused) data.getLong("timer_remaining", 0L) else (end - System.currentTimeMillis()).coerceAtLeast(0L)
+            completed = data.getInt("challenge_done", 0)
+            delay(500L)
         }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("Challenges", fontSize = 25.sp, fontWeight = FontWeight.SemiBold) }
         item { Text(completed.toString() + " completed", color = MaterialTheme.colorScheme.primary) }
-        if (active >= 0) item {
+        if (running && active in challenges.indices) item {
             val current = challenges[active]
-            val left = (current.mins * 60000L - (now - start)).coerceAtLeast(0L)
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("IN PROGRESS", fontSize = 10.sp)
                     Text(current.title, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                    Text(fmt(left) + " remaining")
+                    Text("%02d:%02d remaining".format(remaining / 60000L, (remaining / 1000L) % 60L))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = { completed++; data.edit().putInt("challenge_done", completed).putInt("active_challenge_index", -1).remove("active_challenge_started").apply(); active = -1 }) { Text("Complete") }
-                        OutlinedButton(onClick = { data.edit().putInt("active_challenge_index", -1).remove("active_challenge_started").apply(); active = -1 }) { Text("Cancel") }
+                        Button(onClick = { TimerService.command(context, if (paused) TimerService.ACTION_RESUME else TimerService.ACTION_PAUSE) }) { Text(if (paused) "Resume" else "Pause") }
+                        OutlinedButton(onClick = { TimerService.command(context, TimerService.ACTION_STOP) }) { Text("Cancel") }
                     }
                 }
             }
@@ -361,8 +433,11 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
                         Text(challenge.title, fontWeight = FontWeight.Medium)
                         Text(challenge.mins.toString() + " min · " + challenge.detail, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                     }
-                    if (active == i) Text("Active", color = MaterialTheme.colorScheme.primary)
-                    else if (active < 0) TextButton(onClick = { active = i; start = System.currentTimeMillis(); data.edit().putInt("active_challenge_index", i).putLong("active_challenge_started", start).apply() }) { Text("Start") }
+                    if (running && active == i) Text("Active", color = MaterialTheme.colorScheme.primary)
+                    else if (!running && active < 0) TextButton(onClick = {
+                        data.edit().putInt("active_challenge_index", i).putLong("active_challenge_started", System.currentTimeMillis()).apply()
+                        TimerService.start(context, challenge.title, "challenge", challenge.mins * 60_000L)
+                    }) { Text("Start") }
                     else Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
