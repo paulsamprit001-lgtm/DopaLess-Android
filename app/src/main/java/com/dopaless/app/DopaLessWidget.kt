@@ -31,7 +31,7 @@ class DopaLessWidget : AppWidgetProvider() {
                 .filterKeys { it != context.packageName }.values.sumOf { it.totalTimeInForeground } else 0L
             val mins = total / 60000L
             val usageText = if (mins >= 60) "${mins / 60}h ${mins % 60}m" else "${mins}m"
-            val goal = prefs.getInt("goal", 240)
+            val goal = prefs.getInt("goal", 240)\n            val dark = prefs.getBoolean("dark", false)\n            val primary = if (dark) android.graphics.Color.rgb(168,196,173) else android.graphics.Color.rgb(84,116,95)\n            val foreground = if (dark) android.graphics.Color.rgb(231,236,231) else android.graphics.Color.rgb(32,40,32)\n            val secondary = if (dark) android.graphics.Color.rgb(173,184,174) else android.graphics.Color.rgb(114,123,115)\n            val background = if (dark) android.graphics.Color.rgb(29,37,31) else android.graphics.Color.WHITE
             val active = prefs.getBoolean("timer_active", false)
             val paused = prefs.getBoolean("timer_paused", false)
             val end = prefs.getLong("timer_end", 0L)
@@ -39,7 +39,7 @@ class DopaLessWidget : AppWidgetProvider() {
             val label = prefs.getString("timer_title", "Timer") ?: "Timer"
             ids.forEach { id ->
                 val views = RemoteViews(context.packageName, R.layout.widget_dopaless)
-                views.setTextViewText(R.id.widget_usage, if (allowed) usageText else "Tap to enable")
+                views.setInt(R.id.widget_root, "setBackgroundColor", background)\n                views.setTextColor(R.id.widget_brand, primary)\n                views.setTextColor(R.id.widget_usage, foreground)\n                views.setTextColor(R.id.widget_goal, secondary)\n                views.setTextColor(R.id.widget_timer_title, primary)\n                views.setTextColor(R.id.widget_timer, foreground)\n                views.setTextViewText(R.id.widget_usage, if (allowed) usageText else "Tap to enable")
                 views.setTextViewText(R.id.widget_goal, "Daily goal · ${goal} min")
                 views.setProgressBar(R.id.widget_progress, goal, if (allowed) mins.toInt().coerceIn(0, goal) else 0, false)
                 if (active && remaining > 0L) {
@@ -54,7 +54,7 @@ class DopaLessWidget : AppWidgetProvider() {
                 }
                 val open = android.app.PendingIntent.getActivity(context, 1, Intent(context, MainActivity::class.java), android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
                 views.setOnClickPendingIntent(R.id.widget_root, open)
-                manager.updateAppWidget(id, views)
+                try { manager.updateAppWidget(id, views) } catch (_: Exception) { /* Launcher may be recreating the widget. */ }
             }
         }
 
