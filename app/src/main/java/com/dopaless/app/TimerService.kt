@@ -220,9 +220,13 @@ class TimerService : Service() {
                 val durationSeconds = 8
                 val count = sampleRate * durationSeconds
                 val samples = ShortArray(count)
+                val pulseLength = (sampleRate * 1.45).toInt()
+                val audibleLength = (sampleRate * 0.62).toInt()
                 for (i in samples.indices) {
-                    val fade = minOf(1f, i / 500f, (count - i) / 3000f).coerceAtLeast(0f)
-                    val envelope = (0.30f * fade)
+                    val pulsePosition = i % pulseLength
+                    val fadeIn = (pulsePosition / (sampleRate * 0.08f)).coerceIn(0f, 1f)
+                    val fadeOut = ((audibleLength - pulsePosition) / (sampleRate * 0.20f)).coerceIn(0f, 1f)
+                    val envelope = if (pulsePosition < audibleLength) minOf(fadeIn, fadeOut) * 0.30f else 0f
                     samples[i] = (kotlin.math.sin(2.0 * Math.PI * 440.0 * i / sampleRate) * Short.MAX_VALUE * envelope).toInt().toShort()
                 }
                 val track = AudioTrack.Builder()
