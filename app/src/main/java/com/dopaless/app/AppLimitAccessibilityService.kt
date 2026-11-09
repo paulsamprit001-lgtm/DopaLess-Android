@@ -23,8 +23,25 @@ class AppLimitAccessibilityService : AccessibilityService() {
         val start = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
-        val stats = (getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager).queryAndAggregateUsageStats(start, System.currentTimeMillis())
-        val used = stats[pkg]?.totalTimeInForeground ?: 0L
+        val now = System.currentTimeMillis()
+        val stats = (getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager).queryAndAggregateUsageStats(start, now)
+        var activeFrom = 0L
+        var activeExtra = 0L
+        val events = (getSystemService(USAGE_STATS_SERVICE) as UsageStatsManager).queryEvents(start, now)
+        val event = android.app.usage.UsageEvents.Event()
+        while (events.hasNextEvent()) {
+            events.getNextEvent(event)
+            if (event.packageName != pkg) continue
+            when (event.eventType) {
+                android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND -> activeFrom = event.timeStamp
+                android.app.usage.UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                    if (activeFrom > 0L) activeExtra += (event.timeStamp - activeFrom).coerceAtLeast(0L)
+                    activeFrom = 0L
+                }
+            }
+        }
+        if (activeFrom > 0L) activeExtra += (now - activeFrom).coerceAtLeast(0L)
+        val used = (stats[pkg]?.totalTimeInForeground ?: 0L).coerceAtLeast(activeExtra)
         if (used < limit * 60_000L) return
         val last = p.getString("blocked_package", null)
         if (last == pkg && System.currentTimeMillis() - p.getLong("blocked_at", 0L) < 2500L) return
