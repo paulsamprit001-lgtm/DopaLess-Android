@@ -26,7 +26,7 @@ private const val TIMER_NOTIFICATION_ID = 4102
 class TimerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val p = context.getSharedPreferences(TIMER_PREFS, Context.MODE_PRIVATE)
-        if (!p.getBoolean("timer_active", false) || p.getBoolean("timer_paused", false)) return
+        if (!p.getBoolean("timer_active", false) || p.getBoolean("timer_paused", false) || p.getLong("timer_end", 0L) > System.currentTimeMillis()) return
         val finish = Intent(context, TimerService::class.java).setAction(TimerService.ACTION_FINISH)
         if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(finish) else context.startService(finish)
     }
@@ -109,10 +109,12 @@ class TimerService : Service() {
                 val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
                 title = p.getString("timer_title", "Focus timer") ?: "Focus timer"
                 kind = p.getString("timer_kind", "focus") ?: "focus"
+                startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
                 if (p.getBoolean("timer_active", false) && !p.getBoolean("timer_paused", false) && p.getLong("timer_end", 0L) <= System.currentTimeMillis()) {
                     startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
                     finishTimer()
                 } else {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
             }
