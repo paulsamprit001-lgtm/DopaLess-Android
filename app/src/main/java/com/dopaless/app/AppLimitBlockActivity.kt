@@ -1,6 +1,6 @@
 package com.dopaless.app
 
-import android.app.Activity
+import androidx.activity.ComponentActivity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
@@ -11,7 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-class AppLimitBlockActivity : Activity() {
+class AppLimitBlockActivity : ComponentActivity() {
     private var targetPackage: String = ""
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
