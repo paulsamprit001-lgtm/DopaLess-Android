@@ -111,7 +111,6 @@ class TimerService : Service() {
                 kind = p.getString("timer_kind", "focus") ?: "focus"
                 startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
                 if (p.getBoolean("timer_active", false) && !p.getBoolean("timer_paused", false) && p.getLong("timer_end", 0L) <= System.currentTimeMillis()) {
-                    startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
                     finishTimer()
                 } else {
                     stopForeground(STOP_FOREGROUND_REMOVE)
