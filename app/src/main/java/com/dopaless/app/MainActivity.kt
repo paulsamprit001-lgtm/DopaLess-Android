@@ -29,6 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -169,10 +171,9 @@ private fun DopaLessApp() {
     LaunchedEffect(tab, tick) {
         allowed = hasUsageAccess(c)
         if (allowed) {
-            usage = readUsage(c)
-            hourly = readHourlyUsage(c)
-            checkLimitAlerts(c, usage)
-            DopaLessWidget.update(c)
+            usage = withContext(Dispatchers.IO) { readUsage(c) }
+            hourly = withContext(Dispatchers.IO) { readHourlyUsage(c) }
+            withContext(Dispatchers.IO) { checkLimitAlerts(c, usage); DopaLessWidget.update(c) }
         }
     }
     LaunchedEffect(Unit) {
@@ -180,10 +181,9 @@ private fun DopaLessApp() {
             delay(60_000L)
             allowed = hasUsageAccess(c)
             if (allowed) {
-                usage = readUsage(c)
-                hourly = readHourlyUsage(c)
-                checkLimitAlerts(c, usage)
-                DopaLessWidget.update(c)
+                usage = withContext(Dispatchers.IO) { readUsage(c) }
+                hourly = withContext(Dispatchers.IO) { readHourlyUsage(c) }
+                withContext(Dispatchers.IO) { checkLimitAlerts(c, usage); DopaLessWidget.update(c) }
             }
         }
     }
@@ -205,7 +205,7 @@ private fun DopaLessApp() {
             Box(Modifier.fillMaxSize().padding(pad)) {
                 when (tab) {
                     0 -> HomeScreen(goal, { goal = it; p.edit().putInt("goal", it).apply(); DopaLessWidget.update(c) }, allowed, usage.total, hourly, { tab = 1 }, { c.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) })
-                    1 -> UsageScreen(allowed, usage, goal, limits, { c.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }, { tick++ }, { pkg, mins -> putLimit(c, pkg, mins); limits = getLimits(c); checkLimitAlerts(c, usage) })
+                    1 -> UsageScreen(allowed, usage, goal, limits, { c.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }, { tick++ }, { pkg, mins -> putLimit(c, pkg, mins); limits = getLimits(c); checkLimitAlerts(c, usage); DopaLessWidget.update(c) })
                     2 -> FocusScreen(p)
                     3 -> ChallengesScreen(p)
                     4 -> GrowthScreen(p, hourly, usage.total)
