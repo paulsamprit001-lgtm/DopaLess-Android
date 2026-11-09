@@ -97,7 +97,12 @@ class TimerService : Service() {
                 }
             }
             ACTION_STOP -> stopTimer()
-            ACTION_FINISH -> finishTimer()
+            ACTION_FINISH -> {
+                val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
+                title = p.getString("timer_title", "Focus timer") ?: "Focus timer"
+                kind = p.getString("timer_kind", "focus") ?: "focus"
+                finishTimer()
+            }
             else -> {
                 val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
                 if (p.getBoolean("timer_active", false)) {
