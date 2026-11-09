@@ -38,4 +38,21 @@
         android:layout_marginTop="10dp"
         android:progressTint="#54745F"
         android:progressBackgroundTint="#E8ECE6" />
+    <TextView
+        android:id="@+id/widget_timer_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:textColor="#54745F"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+    <Chronometer
+        android:id="@+id/widget_timer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#202820"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 </LinearLayout>
