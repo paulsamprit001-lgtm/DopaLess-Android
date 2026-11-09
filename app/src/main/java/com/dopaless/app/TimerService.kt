@@ -281,7 +281,7 @@ class TimerService : Service() {
 
     private fun createChannel() {
         if (Build.VERSION.SDK_INT >= 26) {
-            val channel = NotificationChannel(TIMER_CHANNEL, "Active timers", NotificationManager.IMPORTANCE_LOW).apply {
+            val channel = NotificationChannel(TIMER_CHANNEL, "Active timers", NotificationManager.IMPORTANCE_DEFAULT).apply {
                 description = "Shows active focus and challenge timers"
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setSound(null, null)
