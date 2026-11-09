@@ -101,8 +101,8 @@ private fun readHourlyUsage(c: Context): List<Long> {
         val pkg = event.packageName ?: continue
         if (pkg == c.packageName) continue
         when (event.eventType) {
-            UsageEvents.Event.MOVE_TO_FOREGROUND, UsageEvents.Event.ACTIVITY_RESUMED -> active[pkg] = event.timeStamp
-            UsageEvents.Event.MOVE_TO_BACKGROUND, UsageEvents.Event.ACTIVITY_PAUSED, UsageEvents.Event.ACTIVITY_STOPPED -> {
+            UsageEvents.Event.MOVE_TO_FOREGROUND -> active[pkg] = event.timeStamp
+            UsageEvents.Event.MOVE_TO_BACKGROUND -> {
                 val began = active.remove(pkg)
                 if (began != null) addInterval(began, event.timeStamp)
             }
