@@ -44,7 +44,7 @@ class DopaLessWidget : AppWidgetProvider() {
             val label = prefs.getString("timer_title", "Timer") ?: "Timer"
             ids.forEach { id ->
                 val views = RemoteViews(context.packageName, R.layout.widget_dopaless)
-                views.setInt(R.id.widget_root, "setBackgroundColor", background)
+                views.setInt(R.id.widget_root, "setBackgroundResource", if (dark) R.drawable.widget_background_dark else R.drawable.widget_background)
                 views.setTextColor(R.id.widget_brand, primary)
                 views.setTextColor(R.id.widget_usage, foreground)
                 views.setTextColor(R.id.widget_goal, secondary)
