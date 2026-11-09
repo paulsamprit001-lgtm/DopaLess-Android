@@ -305,7 +305,7 @@ private data class Challenge(val title: String, val mins: Int, val detail: Strin
 
 @Composable
 private fun ChallengesScreen(data: android.content.SharedPreferences) {
-    val items = remember { listOf(
+    val challenges = remember { listOf(
         Challenge("30-minute break", 30, "Take a break from optional screen use"),
         Challenge("One-hour reset", 60, "Spend an hour on an offline activity"),
         Challenge("Focused study", 25, "Complete one focused work block"),
@@ -321,7 +321,7 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
     LaunchedEffect(active, start) {
         while (active >= 0) {
             now = System.currentTimeMillis()
-            if (now - start >= items[active].mins * 60000L) {
+            if (now - start >= challenges[active].mins * 60000L) {
                 completed++
                 data.edit().putInt("challenge_done", completed).putInt("active_challenge_index", -1).remove("active_challenge_started").apply()
                 active = -1
@@ -332,7 +332,7 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
         item { Text("Challenges", fontSize = 25.sp, fontWeight = FontWeight.SemiBold) }
         item { Text(completed.toString() + " completed", color = MaterialTheme.colorScheme.primary) }
         if (active >= 0) item {
-            val current = items[active]
+            val current = challenges[active]
             val left = (current.mins * 60000L - (now - start)).coerceAtLeast(0L)
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -346,8 +346,8 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
                 }
             }
         }
-        items(items.size) { i ->
-            val challenge = items[i]
+        items(challenges.size) { i ->
+            val challenge = challenges[i]
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
