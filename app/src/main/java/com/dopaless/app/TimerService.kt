@@ -56,6 +56,14 @@ class TimerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action != ACTION_START) {
+            val saved = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
+            title = saved.getString("timer_title", title) ?: title
+            kind = saved.getString("timer_kind", kind) ?: kind
+            paused = saved.getBoolean("timer_paused", paused)
+            endAt = saved.getLong("timer_end", endAt)
+            remainingWhenPaused = saved.getLong("timer_remaining", remainingWhenPaused)
+        }
         when (intent?.action) {
             ACTION_START -> {
                 title = intent.getStringExtra(EXTRA_TITLE) ?: "Focus timer"
