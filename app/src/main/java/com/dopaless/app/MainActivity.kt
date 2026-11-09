@@ -193,12 +193,12 @@ private fun DopaLessApp() {
     MaterialTheme(colorScheme = if (dark) night else light) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
-            topBar = { TopAppBar(title = { Text("DopaLess", fontWeight = FontWeight.Bold) }, actions = { IconButton(onClick = { dark = !dark; p.edit().putBoolean("dark", dark).apply() }) { Icon(Icons.Rounded.DarkMode, "Theme") } }) },
+            topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface, titleContentColor = MaterialTheme.colorScheme.onSurface, actionIconContentColor = MaterialTheme.colorScheme.onSurface), title = { Text("DopaLess", fontWeight = FontWeight.Bold) }, actions = { IconButton(onClick = { dark = !dark; p.edit().putBoolean("dark", dark).apply(); DopaLessWidget.update(c) }) { Icon(Icons.Rounded.DarkMode, "Theme") } }) },
             bottomBar = {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    val labels = listOf("Home", "Usage", "Focus", "Challenges", "Settings")
-                    val icons = listOf(Icons.Rounded.Home, Icons.Rounded.BarChart, Icons.Rounded.CenterFocusStrong, Icons.Rounded.Flag, Icons.Rounded.Settings)
-                    labels.forEachIndexed { i, label -> NavigationBarItem(selected = tab == i, onClick = { tab = i; tick++ }, icon = { Icon(icons[i], label) }, label = { Text(label, fontSize = 10.sp) }) }
+                    val labels = listOf("Home", "Usage", "Focus", "Challenges", "Growth", "Settings")
+                    val icons = listOf(Icons.Rounded.Home, Icons.Rounded.BarChart, Icons.Rounded.CenterFocusStrong, Icons.Rounded.Flag, Icons.Rounded.Spa, Icons.Rounded.Settings)
+                    labels.forEachIndexed { i, label -> NavigationBarItem(selected = tab == i, onClick = { tab = i; tick++ }, colors = NavigationBarItemDefaults.colors(selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary, unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant, unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant, indicatorColor = MaterialTheme.colorScheme.secondaryContainer), icon = { Icon(icons[i], label) }, label = { Text(label, fontSize = 10.sp) }) }
                 }
             }
         ) { pad ->
@@ -330,7 +330,7 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
             text = { Column {
                 Text(minutes.toInt().toString() + " minutes per day")
                 Slider(value = minutes, onValueChange = { minutes = it }, valueRange = 15f..240f, steps = 14)
-                Text("Alerts are checked while DopaLess is active and whenever usage is refreshed.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("For automatic blocking, enable the DopaLess accessibility service in Settings. Usage access is also required.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } },
             confirmButton = { TextButton(onClick = { save(app.packageName, minutes.toInt()); selected = null }) { Text("Save") } },
             dismissButton = { Row {
@@ -358,7 +358,7 @@ private fun FocusScreen(data: android.content.SharedPreferences) {
             val end = data.getLong("timer_end", 0L)
             remaining = if (paused) data.getLong("timer_remaining", 0L) else (end - System.currentTimeMillis()).coerceAtLeast(0L)
             done = data.getInt("focus_done", 0)
-            delay(500L)
+            delay(1_000L)
         }
     }
     Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
@@ -464,7 +464,7 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
 private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
     val context = LocalContext.current
     Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Text("Settings", fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
+        Text("Settings", fontSize = 25.sp, fontWeight = FontWeight.SemiBold)\n        Text("App limits can automatically redirect you when their daily threshold is reached.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)\n        OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) { Text("Enable app blocking") }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Dark theme", Modifier.weight(1f))
             Switch(checked = dark, onCheckedChange = setDark)
@@ -473,6 +473,6 @@ private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(android.net.Uri.parse("package:" + context.packageName)))
         }) { Text("Battery and app settings") }
         Text("On Xiaomi / MIUI, set DopaLess battery use to No restrictions and enable Autostart so timers are less likely to be stopped.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
-        Text("Version 0.5.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Text("Version 0.6.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
