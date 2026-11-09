@@ -6,4 +6,4 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="1800000"
-    android:description="@string/app_name" />
+    android:description="@string/widget_description" />
