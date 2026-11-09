@@ -4,47 +4,48 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="10dp"
     android:background="@drawable/widget_background">
     <TextView
+        android:id="@+id/widget_brand"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="DopaLess"
         android:textColor="#54745F"
-        android:textSize="14sp"
+        android:textSize="11sp"
         android:textStyle="bold" />
     <TextView
         android:id="@+id/widget_usage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="2dp"
         android:text="--"
         android:textColor="#202820"
-        android:textSize="26sp"
+        android:textSize="21sp"
         android:textStyle="bold" />
     <TextView
         android:id="@+id/widget_goal"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="3dp"
+        android:layout_marginTop="1dp"
         android:text="Daily goal · 240 min"
         android:textColor="#727B73"
-        android:textSize="12sp" />
+        android:textSize="10sp" />
     <ProgressBar
         android:id="@+id/widget_progress"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="6dp"
-        android:layout_marginTop="10dp"
+        android:layout_height="4dp"
+        android:layout_marginTop="5dp"
         android:progressTint="#54745F"
         android:progressBackgroundTint="#E8ECE6" />
     <TextView
         android:id="@+id/widget_timer_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="4dp"
         android:textColor="#54745F"
-        android:textSize="12sp"
+        android:textSize="10sp"
         android:textStyle="bold"
         android:visibility="gone" />
     <Chronometer
@@ -52,7 +53,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="#202820"
-        android:textSize="20sp"
+        android:textSize="16sp"
         android:textStyle="bold"
         android:visibility="gone" />
 </LinearLayout>
