@@ -99,7 +99,7 @@ private fun readHourlyUsage(c: Context): List<Long> {
     while (events.hasNextEvent()) {
         events.getNextEvent(event)
         val pkg = event.packageName ?: continue
-        if (pkg == c.packageName) continue
+        if (pkg == c.packageName || c.packageManager.getLaunchIntentForPackage(pkg) == null) continue
         when (event.eventType) {
             UsageEvents.Event.MOVE_TO_FOREGROUND -> active[pkg] = event.timeStamp
             UsageEvents.Event.MOVE_TO_BACKGROUND -> {
