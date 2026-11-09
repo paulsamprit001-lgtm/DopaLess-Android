@@ -2,4 +2,4 @@
 <resources>
     <string name="app_name">DopaLess</string>
     <string name="widget_description">DopaLess daily screen-time widget</string>
-    <string name="accessibility_limit_description">Redirects selected apps to a DopaLess limit screen after their daily usage limit is reached.</string>\n</resources>
+    <string name="accessibility_limit_description">Redirects selected apps to a DopaLess limit screen after their daily usage limit is reached.</string></resources>
