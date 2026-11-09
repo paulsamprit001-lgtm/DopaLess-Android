@@ -145,7 +145,7 @@ private fun HomeScreen(goal: Int, setGoal: (Int) -> Unit, allowed: Boolean, usag
         }
         item { Text("A gentle reminder", fontWeight = FontWeight.SemiBold, fontSize = 18.sp); Text("Use your phone when you need it. Stop when you don't.", color = Muted) }
         item { Text("Daily goal (minutes)") }
-        item { Slider(value = goal.toFloat(), onValueChange = setGoal, valueRange = 60f..600f, steps = 17) }
+        item { Slider(value = goal.toFloat(), onValueChange = { setGoal(it.toInt()) }, valueRange = 60f..600f, steps = 17) }
     }
 }
 
