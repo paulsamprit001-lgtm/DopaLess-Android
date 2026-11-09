@@ -69,7 +69,7 @@ private fun readUsage(c: Context): UsageSnapshot {
     return UsageSnapshot(apps.sumOf { it.millis }, apps)
 }
 
-private fun fmt(ms: Long): String {
+internal fun fmt(ms: Long): String {
     val m = (ms.coerceAtLeast(0L) / 60000L).toInt()
     return if (m >= 60) (m / 60).toString() + "h " + (m % 60) + "m" else m.toString() + "m"
 }
