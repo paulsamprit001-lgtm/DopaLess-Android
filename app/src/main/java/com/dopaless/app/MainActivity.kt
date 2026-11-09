@@ -24,9 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 
-private val Green = Color(0xFF557C65)
-private val Muted = Color(0xFF7D8580)
-private val Paper = Color(0xFFF6F7F5)
 private const val PREFS = "dopaless_preferences"
 
 class MainActivity : ComponentActivity() {
@@ -79,17 +76,39 @@ private fun DopaLessApp() {
         }
     }
 
-    MaterialTheme(colorScheme = if (dark) darkColorScheme(primary = Color(0xFF9BC5A9)) else lightColorScheme(primary = Green, background = Paper)) {
+    val lightColors = lightColorScheme(
+        primary = Color(0xFF54745F), onPrimary = Color.White,
+        secondary = Color(0xFF849783), background = Color(0xFFF5F6F2),
+        surface = Color.White, onSurface = Color(0xFF202820),
+        onSurfaceVariant = Color(0xFF727B73), surfaceVariant = Color(0xFFE8ECE6),
+        outline = Color(0xFFDCE2DA)
+    )
+    val darkColors = darkColorScheme(
+        primary = Color(0xFFA8C4AD), onPrimary = Color(0xFF1D3324),
+        secondary = Color(0xFFB7C6B4), background = Color(0xFF141A16),
+        surface = Color(0xFF1D251F), onSurface = Color(0xFFE7ECE7),
+        onSurfaceVariant = Color(0xFFADB8AE), surfaceVariant = Color(0xFF303A32),
+        outline = Color(0xFF465349)
+    )
+    MaterialTheme(
+        colorScheme = if (dark) darkColors else lightColors,
+        shapes = Shapes(
+            small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(18.dp),
+            large = RoundedCornerShape(24.dp)
+        )
+    ) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
-                    title = { Column { Text("DopaLess", fontWeight = FontWeight.Bold); Text("A little more intention.", fontSize = 11.sp, color = Muted) } },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                    title = { Column { Text("DopaLess", fontWeight = FontWeight.Bold); Text("A little more intention.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) } },
                     actions = { IconButton(onClick = { dark = !dark; data.edit().putBoolean("dark", dark).apply() }) { Icon(Icons.Rounded.DarkMode, "Toggle theme") } }
                 )
             },
             bottomBar = {
-                NavigationBar {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                     val labels = listOf("Home", "Usage", "Focus", "Challenges", "Profile")
                     val icons = listOf(Icons.Rounded.Home, Icons.Rounded.BarChart, Icons.Rounded.CenterFocusStrong, Icons.Rounded.Flag, Icons.Rounded.Person)
                     labels.forEachIndexed { i, label ->
@@ -117,17 +136,17 @@ private fun DopaLessApp() {
 private fun HomeScreen(goal: Int, setGoal: (Int) -> Unit, allowed: Boolean, usage: Long, enable: () -> Unit) {
     val progress = if (allowed) (usage / 60_000f / goal).coerceIn(0f, 1f) else 0f
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        item { Text("Today", fontSize = 26.sp, fontWeight = FontWeight.SemiBold); Text("Make room for what matters.", color = Muted) }
+        item { Text("Today", fontSize = 26.sp, fontWeight = FontWeight.SemiBold); Text("Make room for what matters.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         item {
-            Card(shape = RoundedCornerShape(26.dp)) {
+            Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
                 Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("DAILY SCREEN-TIME GOAL", color = Muted, fontSize = 10.sp, letterSpacing = 1.2.sp)
+                    Text("DAILY SCREEN-TIME GOAL", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, letterSpacing = 1.2.sp)
                     Spacer(Modifier.height(14.dp))
                     Box(contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(progress = { progress }, modifier = Modifier.size(132.dp), strokeWidth = 9.dp, trackColor = MaterialTheme.colorScheme.surfaceVariant)
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(if (allowed) duration(usage) else "--", fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
-                            Text("today", fontSize = 11.sp, color = Muted)
+                            Text("today", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     Spacer(Modifier.height(12.dp))
@@ -136,14 +155,14 @@ private fun HomeScreen(goal: Int, setGoal: (Int) -> Unit, allowed: Boolean, usag
                         if (left > 0) "${duration(left)} left in your goal" else "Daily goal reached"
                     }, fontWeight = FontWeight.Medium)
                     if (!allowed) {
-                        Text("Allow Usage Access to see today's total on this device.", color = Muted, fontSize = 12.sp)
+                        Text("Allow Usage Access to see today's total on this device.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         TextButton(onClick = enable) { Text("Enable usage access") }
                     }
-                    Text("Goal: ${goal / 60}h ${goal % 60}m", color = Green)
+                    Text("Goal: ${goal / 60}h ${goal % 60}m", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
-        item { Text("A gentle reminder", fontWeight = FontWeight.SemiBold, fontSize = 18.sp); Text("Use your phone when you need it. Stop when you don't.", color = Muted) }
+        item { Text("A gentle reminder", fontWeight = FontWeight.SemiBold, fontSize = 18.sp); Text("Use your phone when you need it. Stop when you don't.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         item { Text("Daily goal (minutes)") }
         item { Slider(value = goal.toFloat(), onValueChange = { setGoal(it.toInt()) }, valueRange = 60f..600f, steps = 17) }
     }
@@ -156,24 +175,24 @@ private fun UsageScreen(allowed: Boolean, usage: Long, goal: Int, enable: () -> 
     val total = remember(allowed, usage, refreshCount) { if (allowed) readTodayUsage(context) else 0L }
     Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Your usage", fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
-        Text("A simple view of your device activity today.", color = Muted)
-        Card(shape = RoundedCornerShape(22.dp)) {
+        Text("A simple view of your device activity today.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)) {
             Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("TODAY'S SCREEN TIME", color = Muted, fontSize = 11.sp, letterSpacing = 1.sp)
+                Text("TODAY'S SCREEN TIME", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp, letterSpacing = 1.sp)
                 Text(if (allowed) duration(total) else "Not connected", fontSize = 30.sp, fontWeight = FontWeight.SemiBold)
                 if (allowed) {
                     LinearProgressIndicator(progress = { (total / 60_000f / goal).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
-                    Text("Daily goal: $goal minutes", color = Muted, fontSize = 12.sp)
-                    Text("Android supplies these usage estimates.", color = Muted, fontSize = 11.sp)
+                    Text("Daily goal: $goal minutes", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                    Text("Android supplies these usage estimates.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
                 } else {
-                    Text("No usage data is read until you grant Android Usage Access.", color = Muted)
+                    Text("No usage data is read until you grant Android Usage Access.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Button(onClick = enable) { Text("Open Usage Access settings") }
                 }
             }
         }
         if (allowed) OutlinedButton(onClick = { refreshCount++; refresh() }) { Icon(Icons.Rounded.Refresh, null); Spacer(Modifier.width(6.dp)); Text("Refresh") }
         Text("Privacy note", fontWeight = FontWeight.SemiBold)
-        Text("Usage data is read locally on your device and is not sent to a server.", color = Muted)
+        Text("Usage data is read locally on your device and is not sent to a server.", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -199,7 +218,7 @@ private fun FocusScreen(data: android.content.SharedPreferences) {
 
     Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Text("Focus mode", fontSize = 26.sp, fontWeight = FontWeight.SemiBold)
-        Text("One thing at a time.", color = Muted)
+        Text("One thing at a time.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(30.dp))
         Text("%02d:%02d".format(seconds / 60, seconds % 60), fontSize = 54.sp, fontWeight = FontWeight.Light)
         Spacer(Modifier.height(20.dp))
@@ -223,7 +242,7 @@ private fun FocusScreen(data: android.content.SharedPreferences) {
             }
         }
         Spacer(Modifier.height(16.dp))
-        Text("Completed sessions: $done", color = Muted)
+        Text("Completed sessions: $done", color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -233,11 +252,11 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
     var active by remember { mutableStateOf(data.getString("active_challenge", "") ?: "") }
     var completed by remember { mutableIntStateOf(data.getInt("challenge_done", 0)) }
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Text("Detox challenges", fontSize = 25.sp, fontWeight = FontWeight.SemiBold); Text("Small steps, no pressure.", color = Muted) }
-        item { Text("Completed: $completed", color = Green) }
+        item { Text("Detox challenges", fontSize = 25.sp, fontWeight = FontWeight.SemiBold); Text("Small steps, no pressure.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item { Text("Completed: $completed", color = MaterialTheme.colorScheme.primary) }
         items(challenges.size) { index ->
             val challenge = challenges[index]
-            Card(shape = RoundedCornerShape(18.dp)) {
+            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(challenge, Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     TextButton(onClick = {
@@ -260,13 +279,13 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
 private fun ProfileScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
     Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Your space", fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
-        Text("Simple settings, stored on this device.", color = Muted)
+        Text("Simple settings, stored on this device.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Dark theme", Modifier.weight(1f))
             Switch(checked = dark, onCheckedChange = setDark)
         }
         Text("Privacy-first by design", fontWeight = FontWeight.SemiBold)
-        Text("No account required. Screen-time access is optional and controlled by Android settings.", color = Muted)
-        Text("Version 0.2.0", color = Muted, fontSize = 12.sp)
+        Text("No account required. Screen-time access is optional and controlled by Android settings.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Version 0.2.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
