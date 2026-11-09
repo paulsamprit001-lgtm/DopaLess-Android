@@ -36,7 +36,6 @@ class DopaLessWidget : AppWidgetProvider() {
             val primary = if (dark) android.graphics.Color.rgb(168,196,173) else android.graphics.Color.rgb(84,116,95)
             val foreground = if (dark) android.graphics.Color.rgb(231,236,231) else android.graphics.Color.rgb(32,40,32)
             val secondary = if (dark) android.graphics.Color.rgb(173,184,174) else android.graphics.Color.rgb(114,123,115)
-            val background = if (dark) android.graphics.Color.rgb(29,37,31) else android.graphics.Color.WHITE
             val active = prefs.getBoolean("timer_active", false)
             val paused = prefs.getBoolean("timer_paused", false)
             val end = prefs.getLong("timer_end", 0L)
@@ -44,7 +43,6 @@ class DopaLessWidget : AppWidgetProvider() {
             val label = prefs.getString("timer_title", "Timer") ?: "Timer"
             ids.forEach { id ->
                 val views = RemoteViews(context.packageName, R.layout.widget_dopaless)
-                views.setInt(R.id.widget_root, "setBackgroundResource", if (dark) R.drawable.widget_background_dark else R.drawable.widget_background)
                 views.setTextColor(R.id.widget_brand, primary)
                 views.setTextColor(R.id.widget_usage, foreground)
                 views.setTextColor(R.id.widget_goal, secondary)
