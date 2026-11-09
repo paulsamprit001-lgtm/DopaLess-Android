@@ -369,7 +369,9 @@ private fun FocusScreen(data: android.content.SharedPreferences) {
         Text(if (active) "%02d:%02d".format(remaining / 60000L, (remaining / 1000L) % 60L) else "%02d:00".format(preset), fontSize = 56.sp, fontWeight = FontWeight.Light)
         Spacer(Modifier.height(20.dp))
         if (!active) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf(15, 25, 45, 60, 90).forEach { FilterChip(selected = preset == it, onClick = { preset = it }, label = { Text(it.toString() + "m") }) } }\n            Text("Custom duration · " + preset + " minutes", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)\n            Slider(value = preset.toFloat(), onValueChange = { preset = it.toInt() }, valueRange = 5f..180f, steps = 34)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf(15, 25, 45, 60, 90).forEach { FilterChip(selected = preset == it, onClick = { preset = it }, label = { Text(it.toString() + "m") }) } }
+            Text("Custom duration · " + preset + " minutes", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            Slider(value = preset.toFloat(), onValueChange = { preset = it.toInt() }, valueRange = 5f..180f, steps = 34)
             Button(onClick = { TimerService.start(context, "Focus session", "focus", preset * 60_000L) }) { Text("Start") }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -465,7 +467,9 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
 private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
     val context = LocalContext.current
     Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        Text("Settings", fontSize = 25.sp, fontWeight = FontWeight.SemiBold)\n        Text("App limits can automatically redirect you when their daily threshold is reached.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)\n        OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) { Text("Enable app blocking") }
+        Text("Settings", fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
+        Text("App limits can automatically redirect you when their daily threshold is reached.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+        OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) { Text("Enable app blocking") }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Dark theme", Modifier.weight(1f))
             Switch(checked = dark, onCheckedChange = setDark)
