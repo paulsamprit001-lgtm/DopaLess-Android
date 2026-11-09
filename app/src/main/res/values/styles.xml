@@ -1,1 +1,10 @@
-<resources><style name="Theme.DopaLess" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#557C65</item><item name="android:statusBarColor">#F6F7F5</item><item name="android:navigationBarColor">#F6F7F5</item><item name="android:windowLightStatusBar">true</item></style></resources>
+<resources>
+    <style name="Theme.DopaLess" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#54745F</item>
+        <item name="android:statusBarColor">#F5F6F2</item>
+        <item name="android:navigationBarColor">#F5F6F2</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
