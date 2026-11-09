@@ -25,6 +25,8 @@ private const val TIMER_NOTIFICATION_ID = 4102
 
 class TimerAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
+        val p = context.getSharedPreferences(TIMER_PREFS, Context.MODE_PRIVATE)
+        if (!p.getBoolean("timer_active", false) || p.getBoolean("timer_paused", false)) return
         val finish = Intent(context, TimerService::class.java).setAction(TimerService.ACTION_FINISH)
         if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(finish) else context.startService(finish)
     }
@@ -108,7 +110,12 @@ class TimerService : Service() {
                 title = p.getString("timer_title", "Focus timer") ?: "Focus timer"
                 kind = p.getString("timer_kind", "focus") ?: "focus"
                 startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
-                finishTimer()
+                if (p.getBoolean("timer_active", false) && !p.getBoolean("timer_paused", false) && p.getLong("timer_end", 0L) <= System.currentTimeMillis()) {
+                    startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
+                    finishTimer()
+                } else {
+                    stopSelf()
+                }
             }
             else -> {
                 val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
@@ -123,6 +130,8 @@ class TimerService : Service() {
                         handler.post(ticker)
                     } else if (paused) {
                         startForeground(TIMER_NOTIFICATION_ID, buildNotification(remainingWhenPaused))
+                    } else if (!paused && endAt > 0L) {
+                        finishTimer()
                     } else {
                         stopTimer()
                     }
@@ -215,7 +224,7 @@ class TimerService : Service() {
                 val samples = ShortArray(count)
                 for (i in samples.indices) {
                     val fade = minOf(1f, i / 500f, (count - i) / 3000f).coerceAtLeast(0f)
-                    val envelope = (0.11f * fade)
+                    val envelope = (0.30f * fade)
                     samples[i] = (kotlin.math.sin(2.0 * Math.PI * 440.0 * i / sampleRate) * Short.MAX_VALUE * envelope).toInt().toShort()
                 }
                 val track = AudioTrack.Builder()
@@ -225,7 +234,7 @@ class TimerService : Service() {
                     .setTransferMode(AudioTrack.MODE_STATIC)
                     .build()
                 track.write(samples, 0, samples.size)
-                track.setVolume(0.22f)
+                track.setVolume(0.32f)
                 track.play()
                 Thread.sleep(durationSeconds * 1000L)
                 track.stop()
