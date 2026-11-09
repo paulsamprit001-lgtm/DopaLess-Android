@@ -109,7 +109,6 @@ class TimerService : Service() {
                 val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
                 title = p.getString("timer_title", "Focus timer") ?: "Focus timer"
                 kind = p.getString("timer_kind", "focus") ?: "focus"
-                startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
                 if (p.getBoolean("timer_active", false) && !p.getBoolean("timer_paused", false) && p.getLong("timer_end", 0L) <= System.currentTimeMillis()) {
                     startForeground(TIMER_NOTIFICATION_ID, buildNotification(0L))
                     finishTimer()
