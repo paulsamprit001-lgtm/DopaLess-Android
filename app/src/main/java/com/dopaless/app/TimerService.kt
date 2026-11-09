@@ -5,6 +5,8 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.AlarmManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
@@ -20,6 +22,13 @@ import android.widget.RemoteViews
 private const val TIMER_PREFS = "dopaless_preferences"
 private const val TIMER_CHANNEL = "dopaless_timer"
 private const val TIMER_NOTIFICATION_ID = 4102
+
+class TimerAlarmReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent?) {
+        val finish = Intent(context, TimerService::class.java).setAction(TimerService.ACTION_FINISH)
+        if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(finish) else context.startService(finish)
+    }
+}
 
 class TimerService : Service() {
     private val handler = Handler(Looper.getMainLooper())
@@ -58,6 +67,7 @@ class TimerService : Service() {
                 paused = false
                 remainingWhenPaused = 0L
                 saveState(true, duration)
+                scheduleEndAlarm(endAt)
                 startForeground(TIMER_NOTIFICATION_ID, buildNotification(duration))
                 DopaLessWidget.update(this)
                 handler.removeCallbacks(ticker)
@@ -68,6 +78,7 @@ class TimerService : Service() {
                     remainingWhenPaused = (endAt - System.currentTimeMillis()).coerceAtLeast(0L)
                     paused = true
                     saveState(true, remainingWhenPaused)
+                    cancelEndAlarm()
                     handler.removeCallbacks(ticker)
                     updateNotification()
                     DopaLessWidget.update(this)
@@ -78,6 +89,7 @@ class TimerService : Service() {
                     endAt = System.currentTimeMillis() + remainingWhenPaused
                     paused = false
                     saveState(true, remainingWhenPaused)
+                    scheduleEndAlarm(endAt)
                     updateNotification()
                     DopaLessWidget.update(this)
                     handler.removeCallbacks(ticker)
@@ -85,6 +97,7 @@ class TimerService : Service() {
                 }
             }
             ACTION_STOP -> stopTimer()
+            ACTION_FINISH -> finishTimer()
             else -> {
                 val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
                 if (p.getBoolean("timer_active", false)) {
@@ -159,6 +172,11 @@ class TimerService : Service() {
     private fun finishTimer() {
         handler.removeCallbacks(ticker)
         saveState(false, 0L)
+        cancelEndAlarm()
+        val p = getSharedPreferences(TIMER_PREFS, MODE_PRIVATE)
+        if (kind == "focus") p.edit().putInt("focus_done", p.getInt("focus_done", 0) + 1).apply()
+        if (kind == "challenge") p.edit().putInt("challenge_done", p.getInt("challenge_done", 0) + 1)
+            .putInt("active_challenge_index", -1).remove("active_challenge_started").apply()
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val open = PendingIntent.getActivity(this, 10, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val complete = Notification.Builder(this, TIMER_CHANNEL)
@@ -204,9 +222,29 @@ class TimerService : Service() {
         }.start()
     }
 
+    private fun scheduleEndAlarm(at: Long) {
+        val alarm = getSystemService(ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, TimerAlarmReceiver::class.java).setAction(ACTION_FINISH)
+        val pi = PendingIntent.getBroadcast(this, 4103, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        if (Build.VERSION.SDK_INT >= 31 && alarm.canScheduleExactAlarms()) {
+            alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+        } else if (Build.VERSION.SDK_INT >= 23) {
+            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi)
+        } else {
+            alarm.setExact(AlarmManager.RTC_WAKEUP, at, pi)
+        }
+    }
+
+    private fun cancelEndAlarm() {
+        val intent = Intent(this, TimerAlarmReceiver::class.java).setAction(ACTION_FINISH)
+        val pi = PendingIntent.getBroadcast(this, 4103, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        (getSystemService(ALARM_SERVICE) as AlarmManager).cancel(pi)
+    }
+
     private fun stopTimer() {
         handler.removeCallbacks(ticker)
         saveState(false, 0L)
+        cancelEndAlarm()
         DopaLessWidget.update(this)
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -235,6 +273,7 @@ class TimerService : Service() {
         const val ACTION_PAUSE = "com.dopaless.action.PAUSE_TIMER"
         const val ACTION_RESUME = "com.dopaless.action.RESUME_TIMER"
         const val ACTION_STOP = "com.dopaless.action.STOP_TIMER"
+        const val ACTION_FINISH = "com.dopaless.action.FINISH_TIMER"
         const val EXTRA_TITLE = "timer_title"
         const val EXTRA_KIND = "timer_kind"
         const val EXTRA_DURATION = "timer_duration"
