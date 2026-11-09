@@ -211,8 +211,6 @@ class TimerService : Service() {
         nm.notify(TIMER_NOTIFICATION_ID + 1, complete)
         DopaLessWidget.update(this)
         playGentleChime()
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf()
     }
 
     private fun playGentleChime() {
@@ -240,6 +238,10 @@ class TimerService : Service() {
                 track.stop()
                 track.release()
             } catch (_: Exception) { }
+            handler.post {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }.start()
     }
 
