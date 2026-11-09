@@ -369,7 +369,7 @@ private fun FocusScreen(data: android.content.SharedPreferences) {
         Text(if (active) "%02d:%02d".format(remaining / 60000L, (remaining / 1000L) % 60L) else "%02d:00".format(preset), fontSize = 56.sp, fontWeight = FontWeight.Light)
         Spacer(Modifier.height(20.dp))
         if (!active) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf(15, 25, 45, 60).forEach { FilterChip(selected = preset == it, onClick = { preset = it }, label = { Text(it.toString() + "m") }) } }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf(15, 25, 45, 60, 90).forEach { FilterChip(selected = preset == it, onClick = { preset = it }, label = { Text(it.toString() + "m") }) } }\n            Text("Custom duration · " + preset + " minutes", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)\n            Slider(value = preset.toFloat(), onValueChange = { preset = it.toInt() }, valueRange = 5f..180f, steps = 34)
             Button(onClick = { TimerService.start(context, "Focus session", "focus", preset * 60_000L) }) { Text("Start") }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
