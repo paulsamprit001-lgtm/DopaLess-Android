@@ -444,6 +444,6 @@ private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
         OutlinedButton(onClick = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(android.net.Uri.parse("package:" + context.packageName)))
         }) { Text("Battery and app settings") }
-        Text("Version 0.8.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Text("Version 0.9.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
