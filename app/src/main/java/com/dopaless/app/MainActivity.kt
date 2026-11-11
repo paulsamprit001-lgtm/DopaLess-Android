@@ -64,54 +64,21 @@ private fun todayStart(): Long = Calendar.getInstance().apply {
 
 private fun readUsage(c: Context): UsageSnapshot {
     if (!hasUsageAccess(c)) return UsageSnapshot(0L, emptyList())
-    val manager = c.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+    val result = ScreenTimeTracker.read(c)
     val pm = c.packageManager
-    val stats = manager.queryAndAggregateUsageStats(todayStart(), System.currentTimeMillis())
-    val apps = stats.values.mapNotNull { s ->
-        if (s.packageName == c.packageName || s.totalTimeInForeground <= 0L) return@mapNotNull null
+    val apps = result.perPackageMillis.mapNotNull { (pkg, millis) ->
+        if (millis <= 0L) return@mapNotNull null
         try {
-            if (pm.getLaunchIntentForPackage(s.packageName) == null) return@mapNotNull null
-            @Suppress("DEPRECATION") val info = pm.getApplicationInfo(s.packageName, 0)
-            AppUsage(s.packageName, pm.getApplicationLabel(info).toString(), s.totalTimeInForeground)
+            @Suppress("DEPRECATION") val info = pm.getApplicationInfo(pkg, 0)
+            AppUsage(pkg, pm.getApplicationLabel(info).toString(), millis)
         } catch (_: Exception) { null }
     }.sortedByDescending { it.millis }
     return UsageSnapshot(apps.sumOf { it.millis }, apps)
 }
 
-
 private fun readHourlyUsage(c: Context): List<Long> {
     if (!hasUsageAccess(c)) return List(24) { 0L }
-    val startOfDay = todayStart()
-    val now = System.currentTimeMillis()
-    val manager = c.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-    val events = manager.queryEvents(startOfDay, now)
-    val event = UsageEvents.Event()
-    val active = mutableMapOf<String, Long>()
-    val buckets = MutableList(24) { 0L }
-    fun addInterval(from: Long, to: Long) {
-        var cursor = from.coerceAtLeast(startOfDay)
-        val end = to.coerceAtMost(now)
-        while (cursor < end) {
-            val hour = ((cursor - startOfDay) / 3_600_000L).toInt().coerceIn(0, 23)
-            val pieceEnd = minOf(end, startOfDay + (hour + 1L) * 3_600_000L)
-            buckets[hour] += pieceEnd - cursor
-            cursor = pieceEnd
-        }
-    }
-    while (events.hasNextEvent()) {
-        events.getNextEvent(event)
-        val pkg = event.packageName ?: continue
-        if (pkg == c.packageName || pkg == "com.android.systemui" || pkg == "com.android.launcher3") continue
-        when (event.eventType) {
-            UsageEvents.Event.MOVE_TO_FOREGROUND -> active[pkg] = event.timeStamp
-            UsageEvents.Event.MOVE_TO_BACKGROUND -> {
-                val began = active.remove(pkg)
-                if (began != null) addInterval(began, event.timeStamp)
-            }
-        }
-    }
-    active.values.forEach { addInterval(it, now) }
-    return buckets
+    return ScreenTimeTracker.read(c).hourlyMillis
 }
 
 internal fun fmt(ms: Long): String {
