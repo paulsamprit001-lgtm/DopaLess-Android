@@ -438,12 +438,22 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text(challenge.title, fontWeight = FontWeight.Medium)
-                        Text(challenge.mins.toString() + " min · " + challenge.detail, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        var customMinutes by remember(i) { mutableIntStateOf(data.getInt("challenge_custom_$i", challenge.mins)) }
+                        Text(customMinutes.toString() + " min · " + challenge.detail, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        Slider(
+                            value = customMinutes.toFloat(),
+                            onValueChange = {
+                                customMinutes = it.toInt().coerceIn(1, 240)
+                                data.edit().putInt("challenge_custom_$i", customMinutes).apply()
+                            },
+                            valueRange = 1f..240f,
+                            steps = 238
+                        )
                     }
                     if (running && active == i) Text("Active", color = MaterialTheme.colorScheme.primary)
                     else if (!anyTimerActive && active < 0) TextButton(onClick = {
                         data.edit().putInt("active_challenge_index", i).putLong("active_challenge_started", System.currentTimeMillis()).apply()
-                        TimerService.start(context, challenge.title, "challenge", challenge.mins * 60_000L)
+                        TimerService.start(context, challenge.title, "challenge", data.getInt("challenge_custom_$i", challenge.mins).coerceIn(1, 240) * 60_000L)
                     }) { Text("Start") }
                     else Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
