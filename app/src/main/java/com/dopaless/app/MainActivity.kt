@@ -53,6 +53,12 @@ class MainActivity : ComponentActivity() {
 
 private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
+private fun isBlockingServiceEnabled(context: Context): Boolean {
+    val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
+    val expected = context.packageName + "/" + AppLimitAccessibilityService::class.java.name
+    return enabled.split(':').any { it.equals(expected, ignoreCase = true) }
+}
+
 private fun hasUsageAccess(c: Context): Boolean {
     val ops = c.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
     return ops.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), c.packageName) == AppOpsManager.MODE_ALLOWED
@@ -266,7 +272,16 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
                 Text("App time limits", Modifier.weight(1f), fontSize = 19.sp, fontWeight = FontWeight.SemiBold)
                 IconButton(onClick = refresh) { Icon(Icons.Rounded.Refresh, "Refresh") }
             }
-            Text("Set a daily threshold for each app. DopaLess alerts you when it is reached.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+            Text("Set a daily limit. DopaLess will move a restricted app to the background and show a blocking screen when the limit is reached. Android does not permit third-party apps to force-stop other apps.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+            val blockingEnabled = isBlockingServiceEnabled(context)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(if (blockingEnabled) Icons.Rounded.CheckCircle else Icons.Rounded.Warning, null,
+                    tint = if (blockingEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                Text(if (blockingEnabled) "Blocking service enabled" else "Blocking service disabled",
+                    color = if (blockingEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp, modifier = Modifier.weight(1f))
+                TextButton(onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) { Text("Enable") }
+            }
             if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 TextButton(onClick = { notificationLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS) }) { Text("Enable limit notifications") }
             }
@@ -297,8 +312,15 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
             title = { Text("Limit for " + app.label) },
             text = { Column {
                 Text(minutes.toInt().toString() + " minutes per day")
-                Slider(value = minutes, onValueChange = { minutes = it }, valueRange = 15f..240f, steps = 14)
-                Text("For automatic blocking, enable the DopaLess accessibility service in Settings. Usage access is also required.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Slider(value = minutes, onValueChange = { minutes = it }, valueRange = 1f..240f, steps = 238)
+                OutlinedTextField(
+                    value = minutes.toInt().toString(),
+                    onValueChange = { value -> value.toIntOrNull()?.let { minutes = it.coerceIn(1, 1440).toFloat() } },
+                    label = { Text("Custom limit in minutes") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("Enable DopaLess in Android Accessibility settings and allow Usage Access. On Xiaomi phones, allow background/autostart operation too.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } },
             confirmButton = { TextButton(onClick = { save(app.packageName, minutes.toInt()); selected = null }) { Text("Save") } },
             dismissButton = { Row {
@@ -444,6 +466,6 @@ private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
         OutlinedButton(onClick = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(android.net.Uri.parse("package:" + context.packageName)))
         }) { Text("Battery and app settings") }
-        Text("Version 0.9.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Text("Version 1.0.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
