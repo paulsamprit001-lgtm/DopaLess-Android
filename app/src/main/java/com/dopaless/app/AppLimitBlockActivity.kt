@@ -16,6 +16,9 @@ class AppLimitBlockActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         targetPackage = intent.getStringExtra(EXTRA_PACKAGE).orEmpty()
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { finishAndHome() }
+        })
         val label = try { packageManager.getApplicationLabel(packageManager.getApplicationInfo(targetPackage, 0)).toString() } catch (_: Exception) { "This app" }
         setContent {
             MaterialTheme {
