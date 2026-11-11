@@ -250,6 +250,7 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
     val notificationLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     var selected by remember { mutableStateOf<AppUsage?>(null) }
     var minutes by remember { mutableFloatStateOf(60f) }
+    var minutesText by remember { mutableStateOf("60") }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text("Usage & app limits", fontSize = 25.sp, fontWeight = FontWeight.SemiBold) }
         item {
@@ -296,7 +297,7 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
                             Text(app.label, fontWeight = FontWeight.SemiBold)
                             Text(fmt(app.millis), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         }
-                        TextButton(onClick = { minutes = (limit ?: 60).toFloat(); selected = app }) { Text(if (limit == null) "Set limit" else limit.toString() + "m · Edit") }
+                        TextButton(onClick = { minutes = (limit ?: 60).toFloat(); minutesText = (limit ?: 60).toString(); selected = app }) { Text(if (limit == null) "Set limit" else limit.toString() + "m · Edit") }
                     }
                     if (limit != null) {
                         LinearProgressIndicator(progress = { (app.millis / 60000f / limit).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(), color = if (app.millis >= limit * 60000L) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
@@ -314,15 +315,18 @@ private fun UsageScreen(allowed: Boolean, usage: UsageSnapshot, goal: Int, limit
                 Text(minutes.toInt().toString() + " minutes per day")
                 Slider(value = minutes, onValueChange = { minutes = it }, valueRange = 1f..240f, steps = 238)
                 OutlinedTextField(
-                    value = minutes.toInt().toString(),
-                    onValueChange = { value -> value.toIntOrNull()?.let { minutes = it.coerceIn(1, 1440).toFloat() } },
+                    value = minutesText,
+                    onValueChange = { value ->
+                        minutesText = value.filter { it.isDigit() }.take(4)
+                        minutesText.toIntOrNull()?.let { minutes = it.coerceIn(1, 1440).toFloat() }
+                    },
                     label = { Text("Custom limit in minutes") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text("Enable DopaLess in Android Accessibility settings and allow Usage Access. On Xiaomi phones, allow background/autostart operation too.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } },
-            confirmButton = { TextButton(onClick = { save(app.packageName, minutes.toInt()); selected = null }) { Text("Save") } },
+            confirmButton = { TextButton(onClick = { save(app.packageName, (minutesText.toIntOrNull() ?: minutes.toInt()).coerceIn(1, 1440)); selected = null }) { Text("Save") } },
             dismissButton = { Row {
                 if (limits.containsKey(app.packageName)) TextButton(onClick = { save(app.packageName, null); selected = null }) { Text("Remove") }
                 TextButton(onClick = { selected = null }) { Text("Cancel") }
