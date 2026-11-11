@@ -9,32 +9,40 @@ import android.view.accessibility.AccessibilityEvent
 
 class AppLimitAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
-    private var foregroundPackage: String? = null
+    @Volatile private var foregroundPackage: String? = null
+    private var lastEnforcedPackage: String? = null
 
     private val poll = object : Runnable {
         override fun run() {
             val pkg = foregroundPackage ?: return
-            if (enforceLimit(pkg)) {
-                foregroundPackage = null
-                return
+            if (isLimited(pkg)) {
+                if (enforceLimit(pkg)) {
+                    lastEnforcedPackage = pkg
+                    foregroundPackage = null
+                    return
+                }
             }
-            if (foregroundPackage == pkg) handler.postDelayed(this, 1_500L)
+            if (foregroundPackage == pkg) handler.postDelayed(this, 1_000L)
         }
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         handler.removeCallbacks(poll)
+        foregroundPackage = null
+        lastEnforcedPackage = null
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
-            event.eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return
+            event.eventType != AccessibilityEvent.TYPE_WINDOWS_CHANGED &&
+            event.eventType != AccessibilityEvent.TYPE_VIEW_FOCUSED) return
 
-        val pkg = event.packageName?.toString() ?: return
+        val pkg = event.packageName?.toString()?.takeIf { it.isNotBlank() } ?: return
         if (pkg == packageName || pkg == "com.android.systemui" ||
-            pkg == "com.android.launcher3" || pkg == "com.miui.home") {
+            pkg == "com.android.launcher3" || pkg == "com.miui.home" ||
+            pkg == "com.google.android.inputmethod.latin") {
             foregroundPackage = null
             handler.removeCallbacks(poll)
             return
@@ -43,7 +51,7 @@ class AppLimitAccessibilityService : AccessibilityService() {
         foregroundPackage = pkg
         handler.removeCallbacks(poll)
         if (isLimited(pkg)) {
-            if (!enforceLimit(pkg) && foregroundPackage == pkg) handler.postDelayed(poll, 1_500L)
+            if (!enforceLimit(pkg) && foregroundPackage == pkg) handler.postDelayed(poll, 1_000L)
         }
     }
 
@@ -85,11 +93,18 @@ class AppLimitAccessibilityService : AccessibilityService() {
                     Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS
             )
         return try {
-            // Move the limited app out of the foreground before showing the block screen.
+            // An AccessibilityService can move the restricted app out of the foreground.
             performGlobalAction(GLOBAL_ACTION_HOME)
             handler.postDelayed({
-                try { startActivity(block) } catch (_: Exception) { }
-            }, 250L)
+                try {
+                    startActivity(block)
+                } catch (_: Exception) {
+                    // Keep checking; reopening the restricted app will trigger enforcement again.
+                    foregroundPackage = pkg
+                    handler.removeCallbacks(poll)
+                    handler.postDelayed(poll, 1_000L)
+                }
+            }, 300L)
             true
         } catch (_: Exception) {
             false
