@@ -469,10 +469,56 @@ private fun ChallengesScreen(data: android.content.SharedPreferences) {
 @Composable
 private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
     val context = LocalContext.current
-    Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    val data = remember { context.getSharedPreferences("dopaless_preferences", android.content.Context.MODE_PRIVATE) }
+    var shieldEnabled by remember { mutableStateOf(data.getBoolean("short_block_enabled", false)) }
+    var instagramEnabled by remember { mutableStateOf(data.getBoolean("short_block_instagram", true)) }
+    var youtubeEnabled by remember { mutableStateOf(data.getBoolean("short_block_youtube", true)) }
+    var blockedCount by remember { mutableIntStateOf(data.getInt("short_block_count", 0)) }
+    val serviceEnabled = isBlockingServiceEnabled(context)
+
+    Column(Modifier.fillMaxSize().padding(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("Settings", fontSize = 25.sp, fontWeight = FontWeight.SemiBold)
+        Text("Scroll Shield", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            "Interrupt short-form feeds while keeping the rest of the app available. Detection runs locally on your phone.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Short-form protection", fontWeight = FontWeight.Medium)
+                Text("Master switch", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+            }
+            Switch(checked = shieldEnabled, onCheckedChange = {
+                shieldEnabled = it
+                data.edit().putBoolean("short_block_enabled", it).apply()
+            })
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Instagram Reels", Modifier.weight(1f))
+            Switch(checked = instagramEnabled, onCheckedChange = {
+                instagramEnabled = it
+                data.edit().putBoolean("short_block_instagram", it).apply()
+            }, enabled = shieldEnabled)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("YouTube Shorts", Modifier.weight(1f))
+            Switch(checked = youtubeEnabled, onCheckedChange = {
+                youtubeEnabled = it
+                data.edit().putBoolean("short_block_youtube", it).apply()
+            }, enabled = shieldEnabled)
+        }
+        Text("Feeds interrupted · $blockedCount", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+        Text(
+            if (serviceEnabled) "Accessibility service enabled" else "Enable the DopaLess accessibility service for Scroll Shield and app limits.",
+            color = if (serviceEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+            fontSize = 12.sp
+        )
+        OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) {
+            Text("Open Accessibility settings")
+        }
+        Text("Curious Mode gives a 60-second intentional pass. A 5-minute protection pause is limited to once per hour.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Divider()
         Text("App limits can automatically redirect you when their daily threshold is reached.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
-        OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) { Text("Enable app blocking") }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Dark theme", Modifier.weight(1f))
             Switch(checked = dark, onCheckedChange = setDark)
@@ -480,6 +526,6 @@ private fun SettingsScreen(dark: Boolean, setDark: (Boolean) -> Unit) {
         OutlinedButton(onClick = {
             context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setData(android.net.Uri.parse("package:" + context.packageName)))
         }) { Text("Battery and app settings") }
-        Text("Version 1.0.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+        Text("Version 1.1.0", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
     }
 }
